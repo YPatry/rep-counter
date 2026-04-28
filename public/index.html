@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>REP COUNTER</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.06);
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --accent3: #ff6b47;
+    --text: #f0f0f5;
+    --muted: rgba(240,240,245,0.4);
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── ONBOARDING ─────────────────────────────────────── */
+  #onboarding {
+    position: fixed; inset: 0; z-index: 500;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 32px;
+    text-align: center;
+  }
+  #onboarding.hidden { display: none; }
+  #onboarding .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px; letter-spacing: 4px;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  #onboarding .tagline {
+    font-size: 14px; color: var(--muted);
+    margin-bottom: 48px; line-height: 1.5;
+  }
+  .onboard-input {
+    width: 100%; padding: 16px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 16px;
+    margin-bottom: 12px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .onboard-input:focus { border-color: var(--accent); }
+  .onboard-input::placeholder { color: var(--muted); }
+  .onboard-btn {
+    width: 100%; padding: 16px;
+    background: var(--accent); border: none;
+    border-radius: var(--radius); color: #0a0a0f;
+    font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+    cursor: pointer; margin-top: 8px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    transition: opacity 0.2s;
+  }
+  .onboard-btn:active { opacity: 0.8; }
+  .onboard-note {
+    font-size: 11px; color: var(--muted); margin-top: 20px; line-height: 1.6;
+  }
+
+  /* ── SYNC STATUS ─────────────────────────────────────── */
+  .sync-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--muted); display: inline-block;
+    margin-right: 6px; transition: background 0.3s;
+  }
+  .sync-dot.synced { background: #47ff8c; }
+  .sync-dot.pending { background: var(--accent); animation: blink 1s infinite; }
+  .sync-dot.offline { background: var(--accent3); }
+  @keyframes blink { 50% { opacity: 0.3; } }
+  .sync-label { font-size: 11px; color: var(--muted); }
+
+  /* ── NAV ────────────────────────────────────────────── */
+  .nav {
+    display: flex; justify-content: space-around;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(18,18,26,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 10px 0 max(10px, env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  .nav-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 10px; font-weight: 500;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    cursor: pointer; padding: 6px 16px; border-radius: 12px;
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn svg { width: 22px; height: 22px; }
+
+  /* ── PAGES ──────────────────────────────────────────── */
+  .page { display: none; padding: 0 0 90px; min-height: 100dvh; }
+  .page.active { display: block; }
+
+  /* ── HEADER ─────────────────────────────────────────── */
+  .header {
+    padding: 56px 20px 20px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px; letter-spacing: 2px; color: var(--text);
+  }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .header .date {
+    font-size: 12px; color: var(--muted); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .sync-status { display: flex; align-items: center; }
+
+  /* ── TODAY TOTAL ─────────────────────────────────────── */
+  .today-total {
+    margin: 0 20px 24px;
+    background: var(--accent); border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  .today-total::before {
+    content: '';
+    position: absolute; top: -30px; right: -30px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(0,0,0,0.07);
+  }
+  .today-total .label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(0,0,0,0.5);
+  }
+  .today-total .count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px; line-height: 1; color: #0a0a0f;
+  }
+  .today-total .unit {
+    font-size: 13px; font-weight: 600; color: rgba(0,0,0,0.45);
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  /* ── EXERCISES ──────────────────────────────────────── */
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 0 20px; margin-bottom: 12px;
+  }
+  .exercises {
+    padding: 0 20px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 24px;
+  }
+  .exercise-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: border-color 0.2s, transform 0.1s;
+    position: relative; overflow: hidden;
+  }
+  .exercise-card::after {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--card-color, var(--accent));
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .exercise-card.has-reps::after { opacity: 1; }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-icon { font-size: 22px; }
+  .card-today {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; line-height: 1;
+    color: var(--card-color, var(--text));
+  }
+  .card-name {
+    font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+  }
+  .card-controls { display: flex; align-items: center; gap: 8px; }
+  .btn-minus, .btn-plus {
+    width: 32px; height: 32px; border-radius: 8px; border: none;
+    font-size: 18px; font-weight: 300; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s; flex-shrink: 0;
+  }
+  .btn-minus { background: var(--surface2); color: var(--muted); }
+  .btn-plus {
+    background: var(--card-color, var(--accent)); color: #0a0a0f;
+    flex: 1; font-size: 20px; font-weight: 700;
+  }
+  .btn-minus:active, .btn-plus:active { transform: scale(0.9); }
+
+  /* ── SESSIONS LOG ───────────────────────────────────── */
+  .sessions-section { padding: 0 20px; }
+  .session-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .session-item:last-child { border-bottom: none; }
+  .session-name { font-size: 14px; font-weight: 500; }
+  .session-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .session-count {
+    font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--accent2);
+  }
+
+  /* ── STATS PAGE ─────────────────────────────────────── */
+  .stats-header { padding: 56px 20px 20px; }
+  .stats-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 2px; }
+
+  .period-tabs { display: flex; gap: 8px; padding: 0 20px; margin-bottom: 20px; }
+  .period-tab {
+    flex: 1; padding: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .period-tab.active { background: var(--accent); color: #0a0a0f; border-color: var(--accent); }
+
+  .stats-cards {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; padding: 0 20px; margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px;
+  }
+  .stat-card .s-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .stat-card .s-value { font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1; }
+  .stat-card .s-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── BAR CHART ──────────────────────────────────────── */
+  .chart-section { padding: 0 20px; margin-bottom: 20px; }
+  .chart-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .chart-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+  }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    background: var(--surface2);
+    transition: height 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    min-height: 3px;
+  }
+  .bar.today { background: var(--accent); }
+  .bar-label { font-size: 9px; color: var(--muted); font-weight: 500; text-transform: uppercase; }
+
+  /* ── BREAKDOWN ──────────────────────────────────────── */
+  .breakdown { padding: 0 20px; }
+  .breakdown-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .breakdown-item:last-child { border-bottom: none; }
+  .breakdown-icon { font-size: 20px; width: 32px; text-align: center; }
+  .breakdown-info { flex: 1; }
+  .breakdown-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .breakdown-bar-wrap { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .breakdown-bar { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .breakdown-count { font-family: 'Bebas Neue', sans-serif; font-size: 22px; min-width: 50px; text-align: right; }
+
+  /* ── SHARE PAGE ─────────────────────────────────────── */
+  .share-header { padding: 56px 20px 20px; }
+  .share-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 2px; }
+
+  .share-card {
+    margin: 0 20px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px;
+  }
+  .share-card .sc-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+  }
+  .share-url-box {
+    display: flex; gap: 8px; align-items: stretch;
+  }
+  .share-url {
+    flex: 1; padding: 12px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--muted);
+    font-size: 12px; word-break: break-all; line-height: 1.5;
+  }
+  .copy-btn {
+    padding: 0 16px;
+    background: var(--accent); border: none; border-radius: 10px;
+    color: #0a0a0f; font-weight: 700; font-size: 13px;
+    cursor: pointer; white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    transition: opacity 0.2s;
+  }
+  .copy-btn:active { opacity: 0.7; }
+
+  .share-preview {
+    margin: 0 20px 20px;
+    background: linear-gradient(135deg, #12121a 0%, #1a1a26 100%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+  }
+  .preview-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 2px; color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .preview-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .preview-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .preview-stat { text-align: center; }
+  .preview-stat .pv { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--text); }
+  .preview-stat .pl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .share-actions { padding: 0 20px; display: flex; flex-direction: column; gap: 10px; }
+  .share-action-btn {
+    width: 100%; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .share-action-btn:active { border-color: var(--accent); }
+  .share-action-btn .sab-icon { font-size: 20px; }
+
+  /* ── SETTINGS PAGE ──────────────────────────────────── */
+  .settings-header { padding: 56px 20px 20px; }
+  .settings-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 2px; }
+  .settings-section { padding: 0 20px; margin-bottom: 24px; }
+  .settings-list {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .settings-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px; border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .settings-item:last-child { border-bottom: none; }
+  .settings-item-icon { font-size: 20px; width: 32px; text-align: center; }
+  .settings-item-info { flex: 1; }
+  .settings-item-label { font-size: 14px; font-weight: 500; }
+  .settings-item-desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .settings-arrow { color: var(--muted); font-size: 18px; }
+
+  .user-banner {
+    margin: 0 20px 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .user-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #0a0a0f; flex-shrink: 0;
+  }
+  .user-name { font-size: 16px; font-weight: 600; }
+  .user-id { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: monospace; }
+
+  /* ── MODAL ──────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+    display: none; align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 24px 24px 0 0;
+    width: 100%; max-height: 85dvh; overflow-y: auto;
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+    animation: slideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 1px; margin-bottom: 16px; }
+  .exercise-toggle {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .exercise-toggle:last-child { border-bottom: none; }
+  .ex-icon { font-size: 22px; }
+  .ex-name { flex: 1; font-size: 15px; font-weight: 500; }
+  .toggle {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+  .toggle::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: white; transition: left 0.2s;
+  }
+  .toggle.on::after { left: 23px; }
+
+  /* ── MISC ───────────────────────────────────────────── */
+  @keyframes pulse-card { 0% { transform: scale(1); } 40% { transform: scale(1.03); } 100% { transform: scale(1); } }
+  .pulse { animation: pulse-card 0.25s ease; }
+
+  .empty-log { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+  .empty-log .emoji { font-size: 36px; margin-bottom: 12px; }
+
+  .toast {
+    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--accent); color: #0a0a0f;
+    padding: 10px 20px; border-radius: 100px;
+    font-size: 13px; font-weight: 600;
+    opacity: 0; transition: all 0.3s; z-index: 300; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .reset-btn {
+    margin: 0 20px; width: calc(100% - 40px); padding: 14px;
+    background: rgba(255,107,71,0.1); border: 1px solid rgba(255,107,71,0.3);
+    border-radius: var(--radius); color: var(--accent3);
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .reset-btn:active { background: rgba(255,107,71,0.2); }
+
+  /* Firebase config prompt */
+  .firebase-banner {
+    margin: 0 20px 16px;
+    background: rgba(232,255,71,0.08); border: 1px solid rgba(232,255,71,0.2);
+    border-radius: var(--radius); padding: 14px 16px;
+    font-size: 12px; color: var(--accent); line-height: 1.6;
+  }
+  .firebase-banner strong { display: block; margin-bottom: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════
+     ONBOARDING
+════════════════════════════════════════════════════ -->
+<div id="onboarding">
+  <div class="logo">REP<br>COUNTER</div>
+  <div class="tagline">Compte tes répétitions au fil de la journée.<br>Sauvegardé dans le cloud, accessible partout.</div>
+  <input class="onboard-input" id="onboard-name" type="text" placeholder="Ton prénom ou pseudo" maxlength="20" autocomplete="off">
+  <button class="onboard-btn" onclick="finishOnboarding()">C'est parti →</button>
+  <div class="onboard-note">Tes données sont sauvegardées dans le cloud.<br>Un lien de partage sera généré pour toi.</div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE : TODAY
+════════════════════════════════════════════════════ -->
+<div class="page active" id="page-today">
+  <div class="header">
+    <h1>TODAY</h1>
+    <div class="header-right">
+      <span class="date" id="today-date"></span>
+      <div class="sync-status">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span class="sync-label" id="sync-label">–</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="firebase-notice" class="firebase-banner" style="display:none">
+    <strong>⚡ Cloud non configuré</strong>
+    Les données sont sauvegardées localement. Ouvre <strong>Réglages → Configurer Firebase</strong> pour activer la sync cloud.
+  </div>
+
+  <div class="today-total">
+    <div>
+      <div class="label">Total du jour</div>
+      <div class="unit">répétitions</div>
+    </div>
+    <div class="count" id="total-count">0</div>
+  </div>
+
+  <div class="section-title">Exercices</div>
+  <div class="exercises" id="exercises-grid"></div>
+
+  <div class="section-title">Dernières sessions</div>
+  <div class="sessions-section" id="sessions-log"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE : STATS
+════════════════════════════════════════════════════ -->
+<div class="page" id="page-stats">
+  <div class="stats-header"><h1>STATS</h1></div>
+
+  <div class="period-tabs">
+    <button class="period-tab active" onclick="setPeriod('week',this)">Semaine</button>
+    <button class="period-tab" onclick="setPeriod('month',this)">Mois</button>
+    <button class="period-tab" onclick="setPeriod('all',this)">Total</button>
+  </div>
+
+  <div class="stats-cards">
+    <div class="stat-card"><div class="s-label">Total</div><div class="s-value" id="s-total">0</div><div class="s-sub">répétitions</div></div>
+    <div class="stat-card"><div class="s-label">Meilleur jour</div><div class="s-value" id="s-best">0</div><div class="s-sub">reps</div></div>
+    <div class="stat-card"><div class="s-label">Moyenne / jour</div><div class="s-value" id="s-avg">0</div><div class="s-sub">reps / jour</div></div>
+    <div class="stat-card"><div class="s-label">Jours actifs</div><div class="s-value" id="s-days">0</div><div class="s-sub" id="s-days-label">cette semaine</div></div>
+  </div>
+
+  <div class="chart-section">
+    <div class="chart-wrap">
+      <div class="chart-title" id="chart-title">Reps par jour</div>
+      <div class="bars" id="bars-container"></div>
+    </div>
+  </div>
+
+  <div class="section-title">Par exercice</div>
+  <div class="breakdown" id="breakdown-list"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE : PARTAGER
+════════════════════════════════════════════════════ -->
+<div class="page" id="page-share">
+  <div class="share-header"><h1>PARTAGER</h1></div>
+
+  <div class="share-card">
+    <div class="sc-title">Ton lien public</div>
+    <div class="share-url-box">
+      <div class="share-url" id="share-url-text">–</div>
+      <button class="copy-btn" onclick="copyShareUrl()">Copier</button>
+    </div>
+  </div>
+
+  <div class="share-preview">
+    <div class="preview-name" id="preview-name">–</div>
+    <div class="preview-sub">Aperçu de ta page publique</div>
+    <div class="preview-stats">
+      <div class="preview-stat">
+        <div class="pv" id="preview-week">0</div>
+        <div class="pl">Cette semaine</div>
+      </div>
+      <div class="preview-stat">
+        <div class="pv" id="preview-month">0</div>
+        <div class="pl">Ce mois</div>
+      </div>
+      <div class="preview-stat">
+        <div class="pv" id="preview-total">0</div>
+        <div class="pl">Total</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="share-actions">
+    <button class="share-action-btn" onclick="nativeShare()">
+      <span class="sab-icon">📤</span> Partager via…
+    </button>
+    <button class="share-action-btn" onclick="copyShareUrl()">
+      <span class="sab-icon">🔗</span> Copier le lien
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     PAGE : RÉGLAGES
+════════════════════════════════════════════════════ -->
+<div class="page" id="page-settings">
+  <div class="settings-header"><h1>RÉGLAGES</h1></div>
+
+  <div class="user-banner">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <div>
+      <div class="user-name" id="user-name-display">–</div>
+      <div class="user-id" id="user-id-display">–</div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="section-title" style="padding:0;margin-bottom:12px">Exercices</div>
+    <div class="settings-list">
+      <div class="settings-item" onclick="openModal()">
+        <div class="settings-item-icon">🏋️</div>
+        <div class="settings-item-info">
+          <div class="settings-item-label">Gérer les exercices</div>
+          <div class="settings-item-desc">Activer / désactiver des exercices</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="section-title" style="padding:0;margin-bottom:12px">Cloud & Sync</div>
+    <div class="settings-list">
+      <div class="settings-item" onclick="showFirebaseSetup()">
+        <div class="settings-item-icon">☁️</div>
+        <div class="settings-item-info">
+          <div class="settings-item-label">Configurer Firebase</div>
+          <div class="settings-item-desc" id="firebase-status-label">Non configuré — données locales uniquement</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+      <div class="settings-item" onclick="forcSync()">
+        <div class="settings-item-icon">🔄</div>
+        <div class="settings-item-info">
+          <div class="settings-item-label">Forcer la synchronisation</div>
+          <div class="settings-item-desc">Envoyer les données locales vers le cloud</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="section-title" style="padding:0;margin-bottom:12px">Données</div>
+    <div class="settings-list">
+      <div class="settings-item" onclick="exportData()">
+        <div class="settings-item-icon">📤</div>
+        <div class="settings-item-info">
+          <div class="settings-item-label">Exporter les données</div>
+          <div class="settings-item-desc">Télécharger un fichier JSON</div>
+        </div>
+        <div class="settings-arrow">›</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetToday()">🗑 Remettre à zéro aujourd'hui</button>
+</div>
+
+<!-- ════════════ NAV ════════════ -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-today" onclick="showPage('today')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    Aujourd'hui
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="showPage('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Stats
+  </button>
+  <button class="nav-btn" id="nav-share" onclick="showPage('share')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Partager
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 19.07l-1.41 1.41M20 12h-2M6 12H4M19.07 19.07l-1.41-1.41M4.93 4.93l-1.41-1.41M12 20v-2M12 6V4"/></svg>
+    Réglages
+  </button>
+</nav>
+
+<!-- ════════════ MODAL EXERCICES ════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Exercices</div>
+    <div id="modal-exercises"></div>
+  </div>
+</div>
+
+<!-- ════════════ MODAL FIREBASE ════════════ -->
+<div class="modal-overlay" id="firebase-modal" onclick="closeFirebaseModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Config Firebase</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+      Colle la config de ton projet Firebase (firebaseConfig) ci-dessous. Elle sera stockée uniquement sur cet appareil.
+    </p>
+    <textarea id="firebase-config-input" style="width:100%;height:160px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:monospace;font-size:12px;padding:12px;outline:none;resize:none;margin-bottom:12px" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","storageBucket":"...","messagingSenderId":"...","appId":"..."}'></textarea>
+    <button class="onboard-btn" onclick="saveFirebaseConfig()">Enregistrer et connecter</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════
+     FIREBASE SDK (dynamique)
+════════════════════════════════════════════════════ -->
+<script type="module">
+// ─── Firebase dynamic import ──────────────────────────
+// On n'importe Firebase que si une config est dispo
+window._firebaseReady = false;
+window._db = null;
+window._firebaseConfig = null;
+
+async function initFirebase(config) {
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getFirestore, doc, setDoc, getDoc, onSnapshot, enableIndexedDbPersistence }
+      = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+
+    const app = initializeApp(config);
+    const db = getFirestore(app);
+
+    // Persistence offline (IndexedDB)
+    try {
+      await enableIndexedDbPersistence(db);
+    } catch(e) { /* already enabled or multi-tab */ }
+
+    window._db = db;
+    window._firebaseReady = true;
+    window._fs = { doc, setDoc, getDoc, onSnapshot };
+    window.dispatchEvent(new Event('firebase-ready'));
+    return true;
+  } catch(e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+// Auto-init si config sauvegardée
+const savedConfig = localStorage.getItem('fbConfig');
+if (savedConfig) {
+  try {
+    const cfg = JSON.parse(savedConfig);
+    initFirebase(cfg).then(ok => {
+      if (!ok) localStorage.removeItem('fbConfig');
+    });
+  } catch(e) {}
+}
+
+window.initFirebaseFromConfig = initFirebase;
+</script>
+
+<script>
+// ════════════════════════════════════════════════════
+//  DONNÉES & STORAGE
+// ════════════════════════════════════════════════════
+const ALL_EXERCISES = [
+  { id: 'pushups', name: 'Pompes',    icon: '💪', color: '#e8ff47' },
+  { id: 'pullups', name: 'Tractions', icon: '🏋️', color: '#47c8ff' },
+  { id: 'dips',    name: 'Dips',      icon: '🔥', color: '#ff6b47' },
+  { id: 'situps',  name: 'Abdos',     icon: '⚡', color: '#b847ff' },
+  { id: 'squats',  name: 'Squats',    icon: '🦵', color: '#ff47b8' },
+  { id: 'lunges',  name: 'Fentes',    icon: '🏃', color: '#47ffb8' },
+  { id: 'burpees', name: 'Burpees',   icon: '💥', color: '#ffb847' },
+  { id: 'planks',  name: 'Gainages',  icon: '🧘', color: '#47ff8c' },
+];
+
+function getStorage() {
+  try { return JSON.parse(localStorage.getItem('repData') || '{}'); } catch { return {}; }
+}
+function setStorage(d) { localStorage.setItem('repData', JSON.stringify(d)); }
+function getSettings() {
+  const s = localStorage.getItem('repSettings');
+  if (s) return JSON.parse(s);
+  const def = {}; ALL_EXERCISES.forEach(e => def[e.id] = true); return def;
+}
+function setSettings(s) { localStorage.setItem('repSettings', JSON.stringify(s)); }
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getTodayData() { return getStorage()[todayKey()] || {}; }
+function setTodayData(obj) {
+  const data = getStorage();
+  data[todayKey()] = obj;
+  setStorage(data);
+  scheduleCloudSync();
+}
+function getActiveExercises() {
+  const s = getSettings(); return ALL_EXERCISES.filter(e => s[e.id]);
+}
+function getUserId() { return localStorage.getItem('userId') || ''; }
+function getUserName() { return localStorage.getItem('userName') || ''; }
+
+// ════════════════════════════════════════════════════
+//  CLOUD SYNC (Firebase)
+// ════════════════════════════════════════════════════
+let syncTimer = null;
+let syncPending = false;
+
+function setSyncStatus(state) {
+  // state: 'synced' | 'pending' | 'offline' | 'local'
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + state;
+  const labels = { synced: 'Synchronisé', pending: 'Sync...', offline: 'Hors ligne', local: 'Local' };
+  label.textContent = labels[state] || state;
+}
+
+function scheduleCloudSync() {
+  if (!window._firebaseReady) { setSyncStatus('local'); return; }
+  setSyncStatus('pending');
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushToCloud, 1500);
+}
+
+async function pushToCloud() {
+  if (!window._firebaseReady || !window._db) return;
+  const uid = getUserId();
+  if (!uid) return;
+  try {
+    const data = getStorage();
+    const { doc, setDoc } = window._fs;
+    await setDoc(doc(window._db, 'users', uid), {
+      name: getUserName(),
+      data: data,
+      updatedAt: Date.now()
+    }, { merge: true });
+    setSyncStatus('synced');
+    syncPending = false;
+  } catch(e) {
+    if (!navigator.onLine) setSyncStatus('offline');
+    else { setSyncStatus('local'); console.error(e); }
+  }
+}
+
+async function pullFromCloud() {
+  if (!window._firebaseReady || !window._db) return;
+  const uid = getUserId();
+  if (!uid) return;
+  try {
+    const { doc, getDoc } = window._fs;
+    const snap = await getDoc(doc(window._db, 'users', uid));
+    if (snap.exists()) {
+      const remote = snap.data();
+      // Merge: remote + local (local wins today)
+      const local = getStorage();
+      const merged = { ...remote.data, ...local };
+      // Today: local always wins
+      merged[todayKey()] = local[todayKey()] || remote.data?.[todayKey()] || {};
+      setStorage(merged);
+      setSyncStatus('synced');
+    }
+  } catch(e) { console.error('pull error', e); }
+}
+
+window.forcSync = async function() {
+  if (!window._firebaseReady) { showToast('Firebase non configuré'); return; }
+  setSyncStatus('pending');
+  await pushToCloud();
+  showToast('Sync effectuée ✓');
+};
+
+// Online/offline detection
+window.addEventListener('online', () => { scheduleCloudSync(); });
+window.addEventListener('offline', () => setSyncStatus('offline'));
+
+// Firebase ready → pull then push
+window.addEventListener('firebase-ready', async () => {
+  document.getElementById('firebase-status-label').textContent = 'Connecté ✓';
+  document.getElementById('firebase-notice').style.display = 'none';
+  await pullFromCloud();
+  renderToday();
+  setSyncStatus('synced');
+});
+
+// ════════════════════════════════════════════════════
+//  ONBOARDING
+// ════════════════════════════════════════════════════
+function generateId(name) {
+  const clean = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'').slice(0,12);
+  const rand = Math.random().toString(36).slice(2,7);
+  return `${clean}-${rand}`;
+}
+
+function finishOnboarding() {
+  const nameInput = document.getElementById('onboard-name');
+  const name = nameInput.value.trim();
+  if (!name) { nameInput.focus(); nameInput.style.borderColor = 'var(--accent3)'; return; }
+
+  const userId = generateId(name);
+  localStorage.setItem('userName', name);
+  localStorage.setItem('userId', userId);
+  localStorage.setItem('onboarded', '1');
+
+  document.getElementById('onboarding').classList.add('hidden');
+  refreshUserUI();
+  renderToday();
+}
+
+function refreshUserUI() {
+  const name = getUserName();
+  const uid = getUserId();
+  document.getElementById('user-name-display').textContent = name || '–';
+  document.getElementById('user-id-display').textContent = uid || '–';
+  if (name) document.getElementById('user-avatar').textContent = name[0].toUpperCase();
+  updateSharePage();
+  if (!window._firebaseReady) document.getElementById('firebase-notice').style.display = 'block';
+}
+
+// ════════════════════════════════════════════════════
+//  SESSIONS
+// ════════════════════════════════════════════════════
+function addSession(exId, count) {
+  const data = getStorage();
+  const key = todayKey();
+  if (!data[key]) data[key] = {};
+  if (!data[key]._sessions) data[key]._sessions = [];
+  data[key]._sessions.unshift({
+    exId, count,
+    time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  });
+  if (data[key]._sessions.length > 30) data[key]._sessions.length = 30;
+  setStorage(data);
+  scheduleCloudSync();
+}
+
+// ════════════════════════════════════════════════════
+//  TODAY PAGE
+// ════════════════════════════════════════════════════
+function renderToday() {
+  const today = getTodayData();
+  const active = getActiveExercises();
+
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('fr-FR', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+
+  let total = 0;
+  active.forEach(e => { total += (today[e.id] || 0); });
+  document.getElementById('total-count').textContent = total;
+
+  const grid = document.getElementById('exercises-grid');
+  grid.innerHTML = '';
+  active.forEach(ex => {
+    const count = today[ex.id] || 0;
+    const card = document.createElement('div');
+    card.className = 'exercise-card' + (count > 0 ? ' has-reps' : '');
+    card.id = 'card-' + ex.id;
+    card.style.setProperty('--card-color', ex.color);
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="card-icon">${ex.icon}</span>
+        <span class="card-today" style="color:${ex.color}">${count}</span>
+      </div>
+      <div class="card-name">${ex.name}</div>
+      <div class="card-controls">
+        <button class="btn-minus" onclick="addRep('${ex.id}',-1)">−</button>
+        <button class="btn-plus" onclick="addRep('${ex.id}',1)" style="background:${ex.color}">+</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  renderSessionsLog();
+  if (!window._firebaseReady) setSyncStatus('local');
+}
+
+function renderSessionsLog() {
+  const log = document.getElementById('sessions-log');
+  const sessions = (getTodayData()._sessions || []).slice(0, 8);
+  if (!sessions.length) {
+    log.innerHTML = `<div class="empty-log"><div class="emoji">💤</div>Aucune session encore.<br>C'est parti !</div>`;
+    return;
+  }
+  log.innerHTML = '';
+  sessions.forEach(s => {
+    const ex = ALL_EXERCISES.find(e => e.id === s.exId);
+    if (!ex) return;
+    const item = document.createElement('div');
+    item.className = 'session-item';
+    item.innerHTML = `
+      <div>
+        <div class="session-name">${ex.icon} ${ex.name}</div>
+        <div class="session-meta">${s.time}</div>
+      </div>
+      <div class="session-count" style="color:${ex.color}">+${s.count}</div>`;
+    log.appendChild(item);
+  });
+}
+
+function addRep(exId, delta) {
+  const today = getTodayData();
+  const current = today[exId] || 0;
+  const newVal = Math.max(0, current + delta);
+  today[exId] = newVal;
+  setTodayData(today);
+  if (delta > 0) addSession(exId, delta);
+
+  const card = document.getElementById('card-' + exId);
+  if (card) {
+    card.querySelector('.card-today').textContent = newVal;
+    card.className = 'exercise-card' + (newVal > 0 ? ' has-reps' : '');
+    card.classList.add('pulse');
+    setTimeout(() => card.classList.remove('pulse'), 300);
+  }
+
+  let total = 0;
+  getActiveExercises().forEach(e => { total += (getTodayData()[e.id] || 0); });
+  document.getElementById('total-count').textContent = total;
+  renderSessionsLog();
+}
+
+// ════════════════════════════════════════════════════
+//  STATS PAGE
+// ════════════════════════════════════════════════════
+let currentPeriod = 'week';
+function setPeriod(p, btn) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderStats();
+}
+
+function getDatesForPeriod(p) {
+  const today = new Date();
+  const dates = [];
+  const count = p === 'week' ? 7 : p === 'month' ? 30 : 365;
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    dates.push({ key, d });
+  }
+  return dates;
+}
+
+function computeStats(p) {
+  const data = getStorage();
+  const dates = getDatesForPeriod(p);
+  let total = 0, best = 0, active = 0;
+  const perEx = {}; const perDay = {};
+  ALL_EXERCISES.forEach(e => perEx[e.id] = 0);
+  dates.forEach(({ key }) => {
+    const dd = data[key] || {};
+    let dt = 0;
+    ALL_EXERCISES.forEach(e => { const v = dd[e.id]||0; dt += v; perEx[e.id] += v; });
+    total += dt; if (dt > 0) active++; if (dt > best) best = dt;
+    perDay[key] = dt;
+  });
+  return { total, best, avg: active > 0 ? Math.round(total/active) : 0, active, perEx, perDay, dates };
+}
+
+function renderStats() {
+  const { total, best, avg, active, perEx, perDay, dates } = computeStats(currentPeriod);
+  const tk = todayKey();
+
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-best').textContent = best;
+  document.getElementById('s-avg').textContent = avg;
+  document.getElementById('s-days').textContent = active;
+  const labels = { week: 'cette semaine', month: 'ce mois', all: 'au total' };
+  document.getElementById('s-days-label').textContent = labels[currentPeriod];
+  const ctitles = { week: 'Reps par jour — 7 jours', month: 'Reps par jour — 30 jours', all: 'Reps par jour — 1 an' };
+  document.getElementById('chart-title').textContent = ctitles[currentPeriod];
+
+  // Chart
+  const barsEl = document.getElementById('bars-container');
+  barsEl.innerHTML = '';
+  const maxVal = Math.max(...Object.values(perDay), 1);
+  dates.forEach(({ key, d }) => {
+    const val = perDay[key] || 0;
+    const pct = Math.round((val / maxVal) * 80);
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+    const label = currentPeriod === 'week'
+      ? d.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0,2)
+      : (currentPeriod === 'month' ? String(d.getDate()) : '');
+    col.innerHTML = `
+      <div class="bar${key===tk?' today':''}" style="height:${Math.max(3,pct)}px"></div>
+      <div class="bar-label">${label}</div>`;
+    barsEl.appendChild(col);
+  });
+
+  // Breakdown
+  const breakdown = document.getElementById('breakdown-list');
+  breakdown.innerHTML = '';
+  const maxEx = Math.max(...Object.values(perEx), 1);
+  const sorted = [...ALL_EXERCISES].filter(e => perEx[e.id] > 0).sort((a,b) => perEx[b.id]-perEx[a.id]);
+  if (!sorted.length) {
+    breakdown.innerHTML = '<div class="empty-log"><div class="emoji">📊</div>Pas encore de données<br>pour cette période.</div>';
+    return;
+  }
+  sorted.forEach(ex => {
+    const count = perEx[ex.id];
+    const pct = Math.round((count/maxEx)*100);
+    const item = document.createElement('div');
+    item.className = 'breakdown-item';
+    item.innerHTML = `
+      <div class="breakdown-icon">${ex.icon}</div>
+      <div class="breakdown-info">
+        <div class="breakdown-name">${ex.name}</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${pct}%;background:${ex.color}"></div></div>
+      </div>
+      <div class="breakdown-count">${count}</div>`;
+    breakdown.appendChild(item);
+  });
+}
+
+// ════════════════════════════════════════════════════
+//  SHARE PAGE
+// ════════════════════════════════════════════════════
+function getShareUrl() {
+  const uid = getUserId();
+  if (!uid) return '';
+  return `${location.origin}/stats/${uid}`;
+  // Sur GitHub Pages: `https://TON-PSEUDO.github.io/rep-counter/stats/${uid}`
+}
+
+function updateSharePage() {
+  const name = getUserName();
+  const url = getShareUrl();
+  document.getElementById('share-url-text').textContent = url || 'Configure Firebase pour obtenir ton lien';
+  document.getElementById('preview-name').textContent = name || '–';
+
+  const w = computeStats('week');
+  const m = computeStats('month');
+  const a = computeStats('all');
+  document.getElementById('preview-week').textContent = w.total;
+  document.getElementById('preview-month').textContent = m.total;
+  document.getElementById('preview-total').textContent = a.total;
+}
+
+function copyShareUrl() {
+  const url = getShareUrl();
+  if (!url) { showToast('Pas encore de lien'); return; }
+  navigator.clipboard.writeText(url).then(() => showToast('Lien copié ✓'));
+}
+
+function nativeShare() {
+  const url = getShareUrl();
+  if (!url) { showToast('Pas encore de lien'); return; }
+  const name = getUserName();
+  if (navigator.share) {
+    navigator.share({ title: `${name} — Rep Counter`, text: `Mes stats d'entraînement`, url });
+  } else { copyShareUrl(); }
+}
+
+// ════════════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════════════
+function openModal() {
+  const settings = getSettings();
+  const modal = document.getElementById('modal-exercises');
+  modal.innerHTML = '';
+  ALL_EXERCISES.forEach(ex => {
+    const row = document.createElement('div');
+    row.className = 'exercise-toggle';
+    const on = settings[ex.id] !== false;
+    row.innerHTML = `
+      <span class="ex-icon">${ex.icon}</span>
+      <span class="ex-name">${ex.name}</span>
+      <div class="toggle ${on?'on':''}" id="toggle-${ex.id}" onclick="toggleEx('${ex.id}')"></div>`;
+    modal.appendChild(row);
+  });
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+    renderToday();
+  }
+}
+function toggleEx(id) {
+  const s = getSettings(); s[id] = !s[id]; setSettings(s);
+  document.getElementById('toggle-'+id).classList.toggle('on', s[id]);
+}
+
+function showFirebaseSetup() {
+  const saved = localStorage.getItem('fbConfig') || '';
+  document.getElementById('firebase-config-input').value = saved;
+  document.getElementById('firebase-modal').classList.add('open');
+}
+function closeFirebaseModal(e) {
+  if (e.target === document.getElementById('firebase-modal'))
+    document.getElementById('firebase-modal').classList.remove('open');
+}
+function saveFirebaseConfig() {
+  const raw = document.getElementById('firebase-config-input').value.trim();
+  try {
+    const cfg = JSON.parse(raw);
+    localStorage.setItem('fbConfig', raw);
+    document.getElementById('firebase-modal').classList.remove('open');
+    showToast('Connexion en cours…');
+    window.initFirebaseFromConfig(cfg).then(ok => {
+      if (ok) showToast('Firebase connecté ✓');
+      else showToast('Erreur de config ✗');
+    });
+  } catch(e) { showToast('JSON invalide ✗'); }
+}
+
+function resetToday() {
+  if (!confirm('Remettre à zéro tous les exercices d\'aujourd\'hui ?')) return;
+  const data = getStorage(); data[todayKey()] = {}; setStorage(data);
+  renderToday(); scheduleCloudSync(); showToast('Remis à zéro ✓');
+}
+
+function exportData() {
+  const json = JSON.stringify(getStorage(), null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `rep-counter-${todayKey()}.json`;
+  a.click();
+  showToast('Export téléchargé ✓');
+}
+
+// ════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+  if (name === 'today') renderToday();
+  if (name === 'share') updateSharePage();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════
+if (!localStorage.getItem('onboarded')) {
+  // show onboarding
+} else {
+  document.getElementById('onboarding').classList.add('hidden');
+  refreshUserUI();
+  renderToday();
+}
+</script>
+</body>
+</html>

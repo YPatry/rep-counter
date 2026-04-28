@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0a0f">
+<title>Rep Counter — Profil</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.06); --accent: #e8ff47;
+    --accent2: #47c8ff; --text: #f0f0f5; --muted: rgba(240,240,245,0.4);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+  .container { max-width: 480px; margin: 0 auto; padding: 40px 20px 60px; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 80px 20px; color: var(--muted); }
+  .loading .spinner {
+    width: 32px; height: 32px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ERROR */
+  .error { text-align: center; padding: 80px 20px; }
+  .error .emoji { font-size: 48px; margin-bottom: 16px; }
+  .error h2 { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--text); margin-bottom: 8px; }
+  .error p { color: var(--muted); font-size: 14px; }
+
+  /* PROFILE */
+  .profile-hero {
+    text-align: center; margin-bottom: 32px; padding-top: 20px;
+  }
+  .avatar {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #0a0a0f;
+    margin: 0 auto 12px;
+  }
+  .profile-name { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 2px; }
+  .profile-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .big-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px; margin-bottom: 24px;
+  }
+  .big-stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px 10px; text-align: center;
+  }
+  .big-stat .bv {
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1;
+    color: var(--accent);
+  }
+  .big-stat .bl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+  .section-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+
+  /* TODAY CARD */
+  .today-card {
+    background: var(--accent); border-radius: 16px;
+    padding: 20px 24px; margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: relative; overflow: hidden;
+  }
+  .today-card::before {
+    content: ''; position: absolute; top: -20px; right: -20px;
+    width: 100px; height: 100px; border-radius: 50%; background: rgba(0,0,0,0.07);
+  }
+  .today-card .tc-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.5); }
+  .today-card .tc-count { font-family: 'Bebas Neue', sans-serif; font-size: 56px; line-height: 1; color: #0a0a0f; }
+  .today-card .tc-sub { font-size: 12px; color: rgba(0,0,0,0.45); font-weight: 600; text-transform: uppercase; }
+
+  /* BREAKDOWN */
+  .breakdown-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .breakdown-item:last-child { border-bottom: none; }
+  .breakdown-icon { font-size: 20px; width: 28px; text-align: center; }
+  .breakdown-info { flex: 1; }
+  .breakdown-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .breakdown-bar-wrap { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .breakdown-bar { height: 100%; border-radius: 2px; }
+  .breakdown-count { font-family: 'Bebas Neue', sans-serif; font-size: 20px; min-width: 44px; text-align: right; }
+
+  /* CHART */
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+  .bars { display: flex; align-items: flex-end; gap: 5px; height: 70px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--surface2); min-height: 3px; }
+  .bar.today { background: var(--accent); }
+  .bar-label { font-size: 8px; color: var(--muted); }
+
+  /* CTA */
+  .cta {
+    margin-top: 32px; text-align: center;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px 20px;
+  }
+  .cta p { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+  .cta a {
+    display: inline-block; padding: 12px 28px;
+    background: var(--accent); border-radius: 100px;
+    color: #0a0a0f; font-weight: 700; font-size: 14px;
+    text-decoration: none; letter-spacing: 0.05em;
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>Chargement du profil…</div>
+  </div>
+  <div class="error hidden" id="error">
+    <div class="emoji">🤷</div>
+    <h2>Profil introuvable</h2>
+    <p>Ce lien est invalide ou le profil n'existe pas encore.</p>
+  </div>
+  <div class="hidden" id="profile">
+    <div class="profile-hero">
+      <div class="avatar" id="p-avatar">?</div>
+      <div class="profile-name" id="p-name">–</div>
+      <div class="profile-sub" id="p-sub">Membre Rep Counter</div>
+    </div>
+
+    <div class="today-card">
+      <div>
+        <div class="tc-label">Aujourd'hui</div>
+        <div class="tc-sub">répétitions</div>
+      </div>
+      <div class="tc-count" id="p-today">0</div>
+    </div>
+
+    <div class="big-stats">
+      <div class="big-stat"><div class="bv" id="p-week">0</div><div class="bl">Cette semaine</div></div>
+      <div class="big-stat"><div class="bv" id="p-month">0</div><div class="bl">Ce mois</div></div>
+      <div class="big-stat"><div class="bv" id="p-total">0</div><div class="bl">Total</div></div>
+    </div>
+
+    <div class="section-title">7 derniers jours</div>
+    <div class="chart-wrap">
+      <div class="bars" id="p-bars"></div>
+    </div>
+
+    <div class="section-title">Par exercice (30 jours)</div>
+    <div id="p-breakdown"></div>
+
+    <div class="cta">
+      <p>Crée ton propre compteur de répétitions</p>
+      <a href="/">Essayer Rep Counter →</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const ALL_EXERCISES = [
+  { id: 'pushups', name: 'Pompes',    icon: '💪', color: '#e8ff47' },
+  { id: 'pullups', name: 'Tractions', icon: '🏋️', color: '#47c8ff' },
+  { id: 'dips',    name: 'Dips',      icon: '🔥', color: '#ff6b47' },
+  { id: 'situps',  name: 'Abdos',     icon: '⚡', color: '#b847ff' },
+  { id: 'squats',  name: 'Squats',    icon: '🦵', color: '#ff47b8' },
+  { id: 'lunges',  name: 'Fentes',    icon: '🏃', color: '#47ffb8' },
+  { id: 'burpees', name: 'Burpees',   icon: '💥', color: '#ffb847' },
+  { id: 'planks',  name: 'Gainages',  icon: '🧘', color: '#47ff8c' },
+];
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDates(n) {
+  const today = new Date(); const dates = [];
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate()-i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    dates.push({ key, d });
+  }
+  return dates;
+}
+
+function sumPeriod(data, n) {
+  let t = 0;
+  getDates(n).forEach(({ key }) => {
+    const dd = data[key] || {};
+    ALL_EXERCISES.forEach(e => { t += dd[e.id]||0; });
+  });
+  return t;
+}
+
+// Extract userId from URL: /stats/:userId
+const pathParts = location.pathname.split('/').filter(Boolean);
+const userId = pathParts[pathParts.length - 1];
+
+if (!userId || pathParts[pathParts.length - 2] !== 'stats') {
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('error').classList.remove('hidden');
+} else {
+  // Load Firebase config from localStorage (user must have visited before)
+  // For public pages, we use anonymous read from Firestore
+  const fbConfig = localStorage.getItem('fbConfig');
+  if (!fbConfig) {
+    // Show message: needs Firebase to be configured
+    document.getElementById('loading').innerHTML = `
+      <div style="text-align:center;padding:60px 20px;color:rgba(240,240,245,0.4)">
+        <div style="font-size:36px;margin-bottom:16px">⚙️</div>
+        <div style="font-size:14px;line-height:1.6">Firebase non configuré.<br>Configure Firebase dans les réglages<br>pour voir les profils publics.</div>
+      </div>`;
+  } else {
+    try {
+      const config = JSON.parse(fbConfig);
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+
+      const app = initializeApp(config);
+      const db = getFirestore(app);
+      const snap = await getDoc(doc(db, 'users', userId));
+
+      if (!snap.exists()) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').classList.remove('hidden');
+      } else {
+        const userData = snap.data();
+        const data = userData.data || {};
+        const name = userData.name || 'Anonyme';
+        const tk = todayKey();
+
+        // Today
+        const todayData = data[tk] || {};
+        let todayTotal = 0;
+        ALL_EXERCISES.forEach(e => { todayTotal += todayData[e.id]||0; });
+
+        // Week / month / total
+        const week = sumPeriod(data, 7);
+        const month = sumPeriod(data, 30);
+        const total = sumPeriod(data, 365);
+
+        // Fill UI
+        document.getElementById('p-avatar').textContent = name[0].toUpperCase();
+        document.getElementById('p-name').textContent = name;
+        document.getElementById('p-today').textContent = todayTotal;
+        document.getElementById('p-week').textContent = week;
+        document.getElementById('p-month').textContent = month;
+        document.getElementById('p-total').textContent = total;
+
+        // Chart (7 days)
+        const dates7 = getDates(7);
+        const perDay = {};
+        dates7.forEach(({ key }) => {
+          const dd = data[key] || {};
+          let dt = 0; ALL_EXERCISES.forEach(e => { dt += dd[e.id]||0; });
+          perDay[key] = dt;
+        });
+        const maxVal = Math.max(...Object.values(perDay), 1);
+        const barsEl = document.getElementById('p-bars');
+        dates7.forEach(({ key, d }) => {
+          const val = perDay[key] || 0;
+          const pct = Math.round((val/maxVal)*70);
+          const col = document.createElement('div'); col.className = 'bar-col';
+          const label = d.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0,2);
+          col.innerHTML = `<div class="bar${key===tk?' today':''}" style="height:${Math.max(3,pct)}px"></div><div class="bar-label">${label}</div>`;
+          barsEl.appendChild(col);
+        });
+
+        // Breakdown (30 days)
+        const perEx = {};
+        ALL_EXERCISES.forEach(e => perEx[e.id] = 0);
+        getDates(30).forEach(({ key }) => {
+          const dd = data[key] || {};
+          ALL_EXERCISES.forEach(e => { perEx[e.id] += dd[e.id]||0; });
+        });
+        const maxEx = Math.max(...Object.values(perEx), 1);
+        const sorted = [...ALL_EXERCISES].filter(e => perEx[e.id] > 0).sort((a,b) => perEx[b.id]-perEx[a.id]);
+        const bd = document.getElementById('p-breakdown');
+        if (!sorted.length) {
+          bd.innerHTML = '<div style="padding:20px;text-align:center;color:rgba(240,240,245,0.4);font-size:13px">Aucune donnée ce mois-ci</div>';
+        } else {
+          sorted.forEach(ex => {
+            const count = perEx[ex.id];
+            const pct = Math.round((count/maxEx)*100);
+            const item = document.createElement('div'); item.className = 'breakdown-item';
+            item.innerHTML = `
+              <div class="breakdown-icon">${ex.icon}</div>
+              <div class="breakdown-info">
+                <div class="breakdown-name">${ex.name}</div>
+                <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${pct}%;background:${ex.color}"></div></div>
+              </div>
+              <div class="breakdown-count">${count}</div>`;
+            bd.appendChild(item);
+          });
+        }
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('profile').classList.remove('hidden');
+        document.title = `${name} — Rep Counter`;
+      }
+    } catch(e) {
+      console.error(e);
+      document.getElementById('loading').innerHTML = `<div style="text-align:center;padding:60px 20px;color:rgba(240,240,245,0.4);font-size:13px">Erreur de chargement.<br>${e.message}</div>`;
+    }
+  }
+}
+</script>
+</body>
+</html>
