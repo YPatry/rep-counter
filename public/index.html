@@ -199,6 +199,13 @@
   .user-banner{margin:0 20px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;gap:14px}
   .user-photo{width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--accent)}
   .user-photo-placeholder{width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:#0a0a0f;flex-shrink:0}
+  .user-avatar-wrap{position:relative;width:48px;height:48px;flex-shrink:0;cursor:pointer;border-radius:50%}
+  .user-avatar-wrap .user-photo{width:100%;height:100%}
+  .user-avatar-wrap:active{opacity:.8}
+  .avatar-edit-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:16px;opacity:0;transition:opacity .2s}
+  .user-avatar-wrap:hover .avatar-edit-overlay,.user-avatar-wrap:active .avatar-edit-overlay{opacity:1}
+  .avatar-uploading{animation:pulse-avatar .8s infinite}
+  @keyframes pulse-avatar{0%,100%{opacity:1}50%{opacity:.4}}
   .user-info{flex:1;min-width:0}
   .user-pseudo{font-size:17px;font-weight:700;color:var(--accent)}
   .user-name{font-size:13px;color:var(--text);margin-top:1px}
@@ -237,9 +244,12 @@
   .danger-btn{margin:0 20px;width:calc(100% - 40px);padding:14px;background:rgba(255,107,71,.1);border:1px solid rgba(255,107,71,.3);border-radius:var(--radius);color:var(--accent3);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
   .logout-btn{margin:12px 20px 0;width:calc(100% - 40px);padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:14px;cursor:pointer}
   .logout-btn:active{color:var(--accent3);border-color:var(--accent3)}
-  .input-field{width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;outline:none;transition:border-color .2s}
-  .input-field:focus{border-color:var(--accent)}
-  .input-field::placeholder{color:var(--muted);font-weight:400}
+  .user-avatar-wrap{position:relative;width:48px;height:48px;flex-shrink:0;cursor:pointer;border-radius:50%}
+  .user-avatar-wrap:active{opacity:.8}
+  .avatar-edit-overlay{position:absolute;inset:0;border-radius:50%;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;font-size:16px;opacity:0;transition:opacity .2s}
+  .user-avatar-wrap:hover .avatar-edit-overlay,.user-avatar-wrap:active .avatar-edit-overlay{opacity:1}
+  .avatar-uploading{animation:pulse-avatar .8s infinite}
+  @keyframes pulse-avatar{0%,100%{opacity:1}50%{opacity:.4}}
 </style>
 </head>
 <body>
@@ -456,6 +466,7 @@
   </div>
 </div>
 
+<input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarFile(event)">
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -464,6 +475,8 @@ import { getFirestore, doc, setDoc, getDoc, getDocs, collection, query, where, o
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getStorage, ref, uploadBytes, getDownloadURL }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
 // ── EXERCISES ─────────────────────────────────────────
 const ALL_EXERCISES = [
@@ -478,10 +491,10 @@ const ALL_EXERCISES = [
 ];
 
 // ── STATE ──────────────────────────────────────────────
-let db = null, auth = null, currentUser = null, syncTimer = null;
+let db = null, auth = null, storage = null, currentUser = null, syncTimer = null;
 let currentPeriod = 'week';
 let lbPeriod = 'day';
-let userProfile = { pseudo: '', isPublic: true };
+let userProfile = { pseudo: '', isPublic: true, customPhoto: '' };
 
 // ── LOCAL HELPERS ──────────────────────────────────────
 const getLocal = () => { try { return JSON.parse(localStorage.getItem('repData')||'{}'); } catch { return {}; } };
@@ -519,6 +532,7 @@ async function bootFirebase() {
     const app = initializeApp(FIREBASE_CONFIG);
     db = getFirestore(app);
     auth = getAuth(app);
+    storage = getStorage(app);
     try { await enableIndexedDbPersistence(db); } catch {}
 
     onAuthStateChanged(auth, async user => {
@@ -563,7 +577,8 @@ async function loadProfile() {
     if (snap.exists()) {
       const d = snap.data();
       userProfile.pseudo = d.pseudo || '';
-      userProfile.isPublic = d.isPublic !== false; // default true
+      userProfile.isPublic = d.isPublic !== false;
+      userProfile.customPhoto = d.customPhoto || '';
     }
   } catch {}
 }
@@ -574,9 +589,10 @@ async function saveProfile() {
     await setDoc(doc(db,'users',currentUser.uid), {
       pseudo: userProfile.pseudo,
       isPublic: userProfile.isPublic,
+      customPhoto: userProfile.customPhoto,
       name: currentUser.displayName,
       email: currentUser.email,
-      photo: currentUser.photoURL,
+      photo: userProfile.customPhoto || currentUser.photoURL,
       data: getLocal(),
       updatedAt: Date.now()
     }, { merge:true });
@@ -662,9 +678,10 @@ const pushToCloud = async () => {
     await setDoc(doc(db,'users',currentUser.uid), {
       pseudo: userProfile.pseudo,
       isPublic: userProfile.isPublic,
+      customPhoto: userProfile.customPhoto,
       name: currentUser.displayName,
       email: currentUser.email,
-      photo: currentUser.photoURL,
+      photo: userProfile.customPhoto || currentUser.photoURL,
       data: getLocal(),
       updatedAt: Date.now()
     }, { merge:true });
@@ -683,6 +700,7 @@ const pullFromCloud = async () => {
       setLocal(merged);
       userProfile.pseudo = remote.pseudo || userProfile.pseudo;
       userProfile.isPublic = remote.isPublic !== false;
+      userProfile.customPhoto = remote.customPhoto || '';
     }
   } catch {}
 };
@@ -690,6 +708,10 @@ window.addEventListener('online', scheduleSync);
 window.addEventListener('offline', ()=>setSyncStatus('offline'));
 
 // ── USER UI ────────────────────────────────────────────
+function getAvatarUrl() {
+  return userProfile.customPhoto || currentUser?.photoURL || '';
+}
+
 function updateUserUI() {
   if (!currentUser) return;
   const pseudo = userProfile.pseudo || currentUser.displayName || '?';
@@ -697,11 +719,12 @@ function updateUserUI() {
   document.getElementById('user-name-display').textContent = currentUser.displayName || '';
   document.getElementById('user-email-display').textContent = currentUser.email || '';
   document.getElementById('current-pseudo-desc').textContent = '@' + pseudo;
+  const avatarUrl = getAvatarUrl();
   const el = document.getElementById('user-avatar');
-  if (currentUser.photoURL) {
-    el.outerHTML = `<img class="user-photo" id="user-avatar" src="${currentUser.photoURL}" referrerpolicy="no-referrer">`;
+  if (avatarUrl) {
+    el.outerHTML = `<div id="user-avatar" class="user-avatar-wrap" onclick="triggerAvatarUpload()" title="Changer l'avatar"><img class="user-photo" src="${avatarUrl}" referrerpolicy="no-referrer"><div class="avatar-edit-overlay">📷</div></div>`;
   } else {
-    el.textContent = pseudo[0].toUpperCase();
+    el.outerHTML = `<div id="user-avatar" class="user-avatar-wrap user-photo-placeholder" onclick="triggerAvatarUpload()" title="Changer l'avatar">${pseudo[0].toUpperCase()}<div class="avatar-edit-overlay">📷</div></div>`;
   }
   updateVisibilityUI();
 }
@@ -985,6 +1008,64 @@ const showToast = msg => {
   setTimeout(()=>t.classList.remove('show'),2500);
 };
 window.showToast = showToast;
+
+// ── AVATAR UPLOAD ───────────────────────────────────────
+window.triggerAvatarUpload = () => {
+  document.getElementById('avatar-file-input').click();
+};
+
+window.handleAvatarFile = async (e) => {
+  const file = e.target.files[0];
+  if (!file || !storage || !currentUser) return;
+
+  // Vérif taille (max 2MB)
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('Image trop lourde — max 2 Mo');
+    return;
+  }
+
+  // Redimensionner côté client avant upload
+  const compressed = await compressImage(file, 200);
+
+  // Indiquer le chargement
+  const wrap = document.getElementById('user-avatar');
+  if (wrap) wrap.classList.add('avatar-uploading');
+  showToast('Upload en cours…');
+
+  try {
+    const storageRef = ref(storage, `avatars/${currentUser.uid}`);
+    await uploadBytes(storageRef, compressed, { contentType: 'image/jpeg' });
+    const url = await getDownloadURL(storageRef);
+    userProfile.customPhoto = url;
+    await saveProfile();
+    updateUserUI();
+    showToast('Avatar mis à jour ✓');
+  } catch(err) {
+    showToast('Erreur upload : ' + err.message);
+    const wrap2 = document.getElementById('user-avatar');
+    if (wrap2) wrap2.classList.remove('avatar-uploading');
+  }
+  // Reset input pour pouvoir re-sélectionner le même fichier
+  e.target.value = '';
+};
+
+function compressImage(file, size) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ratio = Math.min(size/img.width, size/img.height);
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+    };
+    img.src = url;
+  });
+}
 
 // ── SERVICE WORKER ─────────────────────────────────────
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
