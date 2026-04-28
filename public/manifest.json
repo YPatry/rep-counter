@@ -2,7 +2,8 @@
   "name": "Rep Counter",
   "short_name": "RepCount",
   "description": "Compte tes répétitions de muscu au fil de la journée",
-  "start_url": "/",
+  "start_url": "/rep-counter/",
+  "scope": "/rep-counter/",
   "display": "standalone",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",
@@ -21,7 +22,7 @@
     {
       "name": "Ajouter des reps",
       "short_name": "Reps",
-      "url": "/?shortcut=today",
+      "url": "/rep-counter/",
       "description": "Ouvre directement la page du jour"
     }
   ]
