@@ -208,17 +208,18 @@ if (!userId || pathParts[pathParts.length - 2] !== 'stats') {
 } else {
   // Load Firebase config from localStorage (user must have visited before)
   // For public pages, we use anonymous read from Firestore
-  const fbConfig = localStorage.getItem('fbConfig');
-  if (!fbConfig) {
-    // Show message: needs Firebase to be configured
-    document.getElementById('loading').innerHTML = `
-      <div style="text-align:center;padding:60px 20px;color:rgba(240,240,245,0.4)">
-        <div style="font-size:36px;margin-bottom:16px">⚙️</div>
-        <div style="font-size:14px;line-height:1.6">Firebase non configuré.<br>Configure Firebase dans les réglages<br>pour voir les profils publics.</div>
-      </div>`;
-  } else {
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDXy-ak86pVBqyLy3ffMibVI6ELq8pjFK8",
+    authDomain: "rep-counter-c5715.firebaseapp.com",
+    projectId: "rep-counter-c5715",
+    storageBucket: "rep-counter-c5715.firebasestorage.app",
+    messagingSenderId: "278987605904",
+    appId: "1:278987605904:web:254279944ed9c9f5aa1515"
+  };
+
+  {
     try {
-      const config = JSON.parse(fbConfig);
+      const config = FIREBASE_CONFIG;
       const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
       const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
 

@@ -194,27 +194,7 @@
 </head>
 <body>
 
-<!-- SETUP SCREEN -->
-<div id="setup-screen" class="hidden">
-  <div class="setup-logo">REP COUNTER</div>
-  <div class="setup-desc">Une seule chose à faire : colle ta config Firebase pour activer la connexion Google et la sync cloud.</div>
 
-  <div class="setup-step">
-    <div class="setup-step-num">Étape 1 — Firebase Console</div>
-    <div class="setup-step-text">Va sur <code>console.firebase.google.com</code> → ton projet <code>rep-counter-c5715</code> → roue dentée → <code>Project settings</code> → onglet <code>General</code> → section <code>Your apps</code> → icône <code>&lt;/&gt;</code></div>
-  </div>
-  <div class="setup-step">
-    <div class="setup-step-num">Étape 2 — Activer Google Auth</div>
-    <div class="setup-step-text">Dans le menu gauche → <code>Authentication</code> → <code>Sign-in method</code> → <code>Google</code> → toggle Enable → Save</div>
-  </div>
-  <div class="setup-step">
-    <div class="setup-step-num">Étape 3 — Colle la config ici</div>
-    <div class="setup-step-text">Copie uniquement les accolades <code>{ "apiKey": "...", ... }</code> avec les guillemets sur les clés</div>
-    <textarea class="setup-textarea" id="setup-config-input" placeholder='{"apiKey":"AIza...","authDomain":"rep-counter-c5715.firebaseapp.com","projectId":"rep-counter-c5715","storageBucket":"rep-counter-c5715.firebasestorage.app","messagingSenderId":"278987605904","appId":"1:278987605904:web:254279944ed9c9f5aa1515"}'></textarea>
-    <div class="setup-error" id="setup-error">JSON invalide — vérifie que toutes les clés ont des guillemets doubles</div>
-  </div>
-  <button class="setup-btn" onclick="saveSetupConfig()">Enregistrer et continuer →</button>
-</div>
 
 <!-- LOGIN SCREEN -->
 <div id="login-screen" class="hidden">
@@ -389,23 +369,20 @@ const todayKey = () => { const d=new Date(); return `${d.getFullYear()}-${String
 const getTodayData = () => getLocal()[todayKey()] || {};
 const getActive = () => { const s=getSettings(); return ALL_EXERCISES.filter(e=>s[e.id]); };
 
-// ── FIREBASE INIT ──────────────────────────────────────
-window.saveSetupConfig = () => {
-  const raw = document.getElementById('setup-config-input').value.trim();
-  const err = document.getElementById('setup-error');
-  try {
-    JSON.parse(raw);
-    localStorage.setItem('fbConfig', raw);
-    err.style.display = 'none';
-    document.getElementById('setup-screen').classList.add('hidden');
-    bootFirebase();
-  } catch { err.style.display = 'block'; }
+// ── FIREBASE CONFIG (hardcodée — pas un secret) ────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDXy-ak86pVBqyLy3ffMibVI6ELq8pjFK8",
+  authDomain: "rep-counter-c5715.firebaseapp.com",
+  projectId: "rep-counter-c5715",
+  storageBucket: "rep-counter-c5715.firebasestorage.app",
+  messagingSenderId: "278987605904",
+  appId: "1:278987605904:web:254279944ed9c9f5aa1515"
 };
 
+window.saveSetupConfig = () => {}; // plus utilisé
+
 async function bootFirebase() {
-  const raw = localStorage.getItem('fbConfig');
-  if (!raw) { document.getElementById('setup-screen').classList.remove('hidden'); return; }
-  const config = JSON.parse(raw);
+  const config = FIREBASE_CONFIG;
   try {
     const app = initializeApp(config);
     db = getFirestore(app);
